@@ -1,9 +1,34 @@
 model_list:
-  - model_name: gpt-4
+  - model_name: gpt-5.2
     litellm_params:
-      model: github_copilot/gpt-4
+      model: github_copilot/gpt-5.2
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
-  - model_name: claude-sonnet-4
+  - model_name: claude-sonnet-4.5
     litellm_params:
-      model: github_copilot/claude-sonnet-4
+      model: github_copilot/claude-sonnet-4.5
       extra_headers: {"Editor-Version": "vscode/1.85.1", "Copilot-Integration-Id": "vscode-chat"}
+
+model_list:
+  - model_name: claude-sonnet-4.5
+    litellm_params:
+      model: github_copilot/claude-sonnet-4.5
+      extra_headers: &copilot_headers
+        Editor-Version: "vscode/1.85.1"
+        Copilot-Integration-Id: "vscode-chat"
+
+  - model_name: gpt-5.2
+    litellm_params:
+      model: github_copilot/gpt-5.2
+      extra_headers: *copilot_headers
+
+
+litellm_settings:
+  drop_params: true  # drops unsupported OpenAI params instead of 400'ing
+
+router_settings:
+  num_retries: 1
+  # Optional: If one model group fails after retries, try another.
+  # Note: Fallback behavior depends on error type / upstream response.
+  default_fallbacks:
+    claude-sonnet-4.5: ["gpt-5.2"]
+    gpt-5.2: ["claude-sonnet-4.5"]

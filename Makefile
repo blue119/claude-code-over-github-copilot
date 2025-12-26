@@ -20,11 +20,22 @@ help:
 setup:
 	@echo "Setting up environment..."
 	@mkdir -p scripts
-	@python3 -m venv venv
-	@./venv/bin/pip install -r requirements.txt
+	@if command -v uv >/dev/null 2>&1; then \
+		echo "Using uv for dependency management..."; \
+		uv venv; \
+		uv pip install -r requirements.txt; \
+	else \
+		echo "Using standard venv (uv not found)..."; \
+		python3 -m venv venv; \
+		./venv/bin/pip install -r requirements.txt; \
+	fi
 	@if [ ! -f .env ]; then \
 		echo "Generating .env file..."; \
-		python3 generate_env.py; \
+		if command -v uv >/dev/null 2>&1; then \
+			uv run generate_env.py; \
+		else \
+			python3 generate_env.py; \
+		fi; \
 	else \
 		echo "✓ .env file already exists, skipping generation"; \
 	fi
@@ -46,7 +57,11 @@ install-claude:
 # Start LiteLLM proxy
 start:
 	@echo "Starting LiteLLM proxy..."
-	@source venv/bin/activate && litellm --config copilot-config.yaml --port 4444
+	@if command -v uv >/dev/null 2>&1; then \
+		uv run litellm --config copilot-config.yaml --port 4444; \
+	else \
+		source venv/bin/activate && litellm --config copilot-config.yaml --port 4444; \
+	fi
 
 # Stop running processes
 stop:
@@ -60,7 +75,8 @@ test:
 	@curl -X POST http://localhost:4444/chat/completions \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer $$(grep LITELLM_MASTER_KEY .env | cut -d'=' -f2 | tr -d '\"')" \
-		-d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'
+		-d '{"model": "claude-sonnet-4.5", "messages": [{"role": "user", "content": "Hello"}]}'
+		#-d '{"model": "gpt-5.2", "messages": [{"role": "user", "content": "Hello"}]}'
 	@echo ""
 	@echo "✅ Test completed successfully!"
 
@@ -74,7 +90,11 @@ claude-enable:
 		cp ~/.claude/settings.json ~/.claude/settings.json.backup.$$(date +%Y%m%d_%H%M%S); \
 		echo "📁 Backed up existing settings to ~/.claude/settings.json.backup.$$(date +%Y%m%d_%H%M%S)"; \
 	fi; \
-	python3 scripts/claude_enable.py "$$MASTER_KEY"
+	if command -v uv >/dev/null 2>&1; then \
+		uv run scripts/claude_enable.py "$$MASTER_KEY"; \
+	else \
+		python3 scripts/claude_enable.py "$$MASTER_KEY"; \
+	fi
 	@echo "✅ Claude Code configured to use local proxy"
 	@echo "💡 Make sure to run 'make start' to start the LiteLLM proxy server"
 
@@ -90,7 +110,11 @@ claude-disable:
 		cp "$$LATEST_BACKUP" ~/.claude/settings.json; \
 		echo "✅ Restored settings from $$LATEST_BACKUP"; \
 	else \
-		python3 scripts/claude_disable.py; \
+		if command -v uv >/dev/null 2>&1; then \
+			uv run scripts/claude_disable.py; \
+		else \
+			python3 scripts/claude_disable.py; \
+		fi; \
 	fi
 
 # Show current Claude Code configuration
